@@ -24,7 +24,13 @@ class VectorStore:
 
         for i, chunk in enumerate(chunks):
 
-            ids.append(f"chunk_{i}")
+            paper_name = chunk["metadata"]["paper"]
+
+            paper_name = paper_name.replace(".pdf", "")
+
+            paper_name = paper_name.replace(" ", "_")
+
+            ids.append(f"{paper_name}_chunk_{i}")
 
             documents.append(chunk["content"])
 

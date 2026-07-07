@@ -1,5 +1,5 @@
 import streamlit as st
-
+from core.vector_store import VectorStore
 from core.document_service import DocumentService
 
 
@@ -14,6 +14,7 @@ def sidebar():
             type=["pdf"],
             accept_multiple_files=True
         )
+        st.session_state.uploaded_files = uploaded_files
 
         process = st.button("Process Documents")
 
@@ -27,26 +28,79 @@ def sidebar():
 
                     service = DocumentService()
 
-                    chunk_count = service.process_documents(
-                        uploaded_files
-                    )
+
+
+                    summary = service.process_documents(uploaded_files)
+                    st.session_state.summary = summary
 
                 st.session_state.processed = True
 
+
                 st.success(
-                    f"Successfully processed {chunk_count} chunks!"
-                )
+                            f"""
+                        Processed Successfully!
+
+                        📄 Papers : {summary['papers']}
+
+                        🧩 Chunks : {summary['chunks']}
+                        """
+                        )
 
                 st.balloons()
 
         st.divider()
 
-        st.subheader("Uploaded Files")
+        st.subheader("📚 Knowledge Base")
+
+        if "summary" in st.session_state:
+
+            summary = st.session_state.summary
+
+            st.success("🟢 Ready")
+
+            st.metric(
+                "Indexed Papers",
+                summary["papers"]
+            )
+
+            st.metric(
+                "Stored Chunks",
+                summary["chunks"]
+            )
+
+        else:
+
+            st.warning("No documents processed.")
+
+
+        st.divider()
+
+        st.subheader("Uploaded Papers")
 
         if uploaded_files:
 
             for file in uploaded_files:
-                st.success(file.name)
+
+                st.success(f"📄 {file.name}")
 
         else:
-            st.info("No files uploaded.")
+
+            st.info("No uploaded papers.")
+
+
+        if st.button("🗑 Reset Knowledge Base"):
+
+            self_clear = VectorStore()
+
+            self_clear.clear_database()
+
+            st.session_state.pop(
+                "summary",
+                None
+            )
+
+            st.success(
+                "Knowledge Base Cleared!"
+            )
+
+            st.rerun()
