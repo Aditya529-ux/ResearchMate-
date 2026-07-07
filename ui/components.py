@@ -1,5 +1,7 @@
 import streamlit as st
 
+from core.document_service import DocumentService
+
 
 def sidebar():
 
@@ -15,40 +17,27 @@ def sidebar():
 
         process = st.button("Process Documents")
 
-        if process and uploaded_files:
+        if process:
 
-            with st.spinner("Processing PDFs..."):
+            if not uploaded_files:
+                st.warning("Please upload at least one PDF.")
+            else:
 
-                from core.pdf_processor import PDFProcessor
-                from core.embedding_manager import EmbeddingManager
-                from core.vector_store import VectorStore
+                with st.spinner("Processing PDFs..."):
 
-                processor = PDFProcessor()
-                embedding_manager = EmbeddingManager()
-                vector_store = VectorStore()
+                    service = DocumentService()
 
-                for pdf in uploaded_files:
-
-                    saved_path = processor.save_uploaded_file(pdf)
-
-                    text = processor.extract_text(saved_path)
-
-                    chunks = processor.create_chunks(
-                        text,
-                        pdf.name
+                    chunk_count = service.process_documents(
+                        uploaded_files
                     )
 
-                    texts = [chunk["content"] for chunk in chunks]
+                st.session_state.processed = True
 
-                    embeddings = embedding_manager.embed_documents(texts)
+                st.success(
+                    f"Successfully processed {chunk_count} chunks!"
+                )
 
-                    vector_store.add_chunks(chunks, embeddings)
-
-                    st.write(f"{pdf.name} : {len(chunks)} chunks created")
-
-            st.session_state.processed = True
-            st.balloons()
-            st.success("Processing Complete!")
+                st.balloons()
 
         st.divider()
 
@@ -57,9 +46,7 @@ def sidebar():
         if uploaded_files:
 
             for file in uploaded_files:
-
                 st.success(file.name)
 
         else:
-
             st.info("No files uploaded.")
