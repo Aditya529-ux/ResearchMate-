@@ -1,6 +1,8 @@
-CHUNK_SIZE = 1000
-CHUNK_OVERLAP = 200
+import os
+from dotenv import load_dotenv
 
-TOP_K = 5
+load_dotenv()
 
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
+
+GEMINI_MODEL = "gemini-2.5-flash"

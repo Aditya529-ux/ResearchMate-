@@ -1,4 +1,5 @@
 import streamlit as st
+from core.qa_engine import QAEngine
 
 from ui.components import sidebar
 from core.retriever import Retriever
@@ -47,8 +48,38 @@ def home_page():
 
                 st.session_state.results = results
 
+                documents = results["documents"][0]
+
+                metadatas = results["metadatas"][0]
+
+                qa = QAEngine()
+
+                response = qa.answer_question(
+                    question,
+                    documents,
+                    metadatas
+                )
+
+                st.session_state.answer = response
+
             st.success("Relevant Chunks Retrieved!")
 
+
+            if "answer" in st.session_state:
+
+                st.divider()
+
+                st.subheader("🤖 ResearchMate Answer")
+
+                st.success(
+                    st.session_state.answer["answer"]
+                )
+
+                st.markdown("### Sources")
+
+                for paper in st.session_state.answer["sources"]:
+
+                    st.info(f"📄 {paper}")
     # ---------------- Retrieved Chunks ---------------- #
 
     if "results" in st.session_state:
