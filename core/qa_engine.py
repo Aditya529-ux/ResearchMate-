@@ -1,13 +1,12 @@
 import google.generativeai as genai
 
-from config import GEMINI_API_KEY, GEMINI_MODEL
-
+from config import GOOGLE_API_KEY, GEMINI_MODEL
 
 class QAEngine:
 
     def __init__(self):
 
-        genai.configure(api_key=GEMINI_API_KEY)
+        genai.configure(api_key=GOOGLE_API_KEY)
 
         self.model = genai.GenerativeModel(
             GEMINI_MODEL
