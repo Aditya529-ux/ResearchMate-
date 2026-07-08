@@ -5,6 +5,7 @@ from core.retriever import Retriever
 from core.qa_engine import QAEngine
 from core.comparison_engine import ComparisonEngine
 from core.gap_finder import GapFinder
+import pandas as pd
 
 
 # --------------------------------------------------
@@ -62,6 +63,20 @@ def home_page():
 
         st.divider()
 
+        # ---------------- Paper Selector ---------------- #
+
+        uploaded_files = st.session_state.get("uploaded_files", [])
+
+        paper_options = ["All Papers"] + [
+            file.name for file in uploaded_files
+        ]
+
+        selected_paper = st.selectbox(
+            "📄 Search In",
+            paper_options,
+            key="paper_selector"
+        )
+
         question = render_chat()
 
         if question:
@@ -76,26 +91,49 @@ def home_page():
 
                     retriever = Retriever()
 
-                    results = retriever.retrieve(question)
+                    if selected_paper == "All Papers":
+
+                        results = retriever.retrieve(question)
+
+                    else:
+
+                        results = retriever.retrieve(
+                            question,
+                            paper_name=selected_paper
+                        )
 
                     st.session_state.results = results
 
-                    documents = results["documents"][0]
+                    # No relevant chunks found
+                    if not results["found"]:
 
-                    metadatas = results["metadatas"][0]
+                        answer = {
 
-                    qa = QAEngine()
+                            "answer": "❌ I couldn't find relevant information in the uploaded research papers.",
 
-                    answer = qa.answer_question(
+                            "sources": []
 
-                        question,
+                        }
 
-                        documents,
+                    else:
 
-                        metadatas
+                        documents = results["documents"][0]
 
-                    )
-                    st.toast("✅ Answer Generated")
+                        metadatas = results["metadatas"][0]
+
+                        qa = QAEngine()
+
+                        answer = qa.answer_question(
+
+                            question,
+
+                            documents,
+
+                            metadatas
+
+                        )
+
+                st.toast("✅ Answer Generated")
                 st.session_state.last_question = question
                 st.session_state.answer = answer
                 st.session_state.chat_history.append(
@@ -120,7 +158,13 @@ def home_page():
 
                 st.markdown("#### 📚 Sources")
 
-                for paper in chat["sources"]:
+                if chat["sources"]:
+
+                    st.markdown("#### 📚 Sources")
+
+                    for paper in chat["sources"]:
+
+                        st.caption(f"📄 {paper}")
 
                     st.markdown(f"- 📄 **{paper}**")
 
@@ -135,7 +179,14 @@ def home_page():
 
             st.divider()
 
-            st.success(f"Found {len(documents)} relevant chunks.")
+            with st.container(border=True):
+
+                st.markdown("### 📄 Search Results")
+
+                st.write(
+                    f"Found **{len(documents)}** relevant papers."
+                )
+
 
             st.subheader("📄 Retrieved Chunks")
 
@@ -179,6 +230,22 @@ def home_page():
 
             st.table(comparison)
 
+            df = pd.DataFrame(comparison)
+
+            csv = df.to_csv(index=False).encode("utf-8")
+
+            st.download_button(
+
+                "⬇ Download Comparison CSV",
+
+                data=csv,
+
+                file_name="ResearchMate_Comparison.csv",
+
+                mime="text/csv"
+
+            )
+
     # ================= Tab 3: Research Gaps ================= #
 
     with tab3:
@@ -195,7 +262,11 @@ def home_page():
 
         if report is not None:
 
-            st.success(report["status"])
+            with st.container(border=True):
+
+                st.markdown("### 🔍 Research Gap Analysis")
+
+                st.write(report["status"])
 
             col1, col2 = st.columns(2)
 

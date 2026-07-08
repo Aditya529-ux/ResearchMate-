@@ -31,13 +31,34 @@ def sidebar():
 
             else:
 
-                with st.spinner("Processing PDFs..."):
+                progress = st.progress(0)
 
-                    service = DocumentService()
+                status = st.empty()
 
-                    summary = service.process_documents(
-                        uploaded_files
-                    )
+                status.write("📄 Reading PDF files...")
+                progress.progress(20)
+
+                status.write("✂ Creating chunks...")
+                progress.progress(40)
+
+                status.write("🧠 Generating embeddings...")
+                progress.progress(70)
+
+                service = DocumentService()
+
+                summary = service.process_documents(uploaded_files)
+
+                status.write("💾 Saving to Knowledge Base...")
+                progress.progress(100)
+
+                status.success("✅ Processing Complete!")
+                import time
+
+                time.sleep(1)
+
+                progress.empty()
+
+                status.empty()
 
                 # Save everything in Session State
                 st.session_state.summary = summary
@@ -55,7 +76,11 @@ def sidebar():
 
         if summary:
 
-            st.success("🟢 Ready")
+            with st.container(border=True):
+
+                st.markdown("### 📚 Knowledge Base")
+
+                st.write("🟢 Ready")
 
             col1, col2 = st.columns(2)
 
@@ -73,7 +98,13 @@ def sidebar():
 
         else:
 
-            st.info("No documents processed yet.")
+            with st.container(border=True):
+
+                st.markdown("### 📚 Knowledge Base")
+
+                st.caption(
+                    "Upload papers to begin."
+                )
 
         # ---------------- Uploaded Papers ---------------- #
 
@@ -91,7 +122,27 @@ def sidebar():
 
         else:
 
-            st.caption("No papers uploaded.")
+            with st.container(border=True):
+
+                st.markdown("### 👋 Welcome to ResearchMate")
+
+                st.write(
+                    """
+        Upload one or more research papers to get started.
+
+        ### 🚀 Quick Start
+
+        1. 📄 Upload PDF research papers
+
+        2. ⚙️ Click **Process Documents**
+
+        3. 💬 Ask questions
+
+        4. 📊 Compare papers
+
+        5. 🔍 Discover research gaps
+        """
+                )
 
         # ---------------- Reset ---------------- #
 

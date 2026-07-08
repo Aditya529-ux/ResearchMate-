@@ -56,7 +56,12 @@ class VectorStore:
 
         return self.collection.query(
             query_embeddings=[query_embedding],
-            n_results=top_k
+            n_results=top_k,
+            include=[
+                "documents",
+                "metadatas",
+                "distances"
+            ]
         )
 
         return results
