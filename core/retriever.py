@@ -29,7 +29,7 @@ class Retriever:
         unique_metadata = []
 
         seen_papers = set()
-        DISTANCE_THRESHOLD = 1.2
+        DISTANCE_THRESHOLD = 10
         for document, metadata,distance in zip(
             results["documents"][0],
             results["metadatas"][0],

@@ -1,28 +1,43 @@
 import streamlit as st
+import pandas as pd
+
 from ui.components import sidebar
 from ui.chat import render_chat
+
 from core.retriever import Retriever
 from core.qa_engine import QAEngine
 from core.comparison_engine import ComparisonEngine
 from core.gap_finder import GapFinder
-import pandas as pd
 
 
 # --------------------------------------------------
-# Initialize Session State
+# Session State
 # --------------------------------------------------
 
 def initialize_session():
 
     defaults = {
+
+        #"quick_prompt": None,
+
         "summary": None,
+
         "results": None,
+
         "comparison": None,
+
         "gap_report": None,
+
         "answer": None,
+
         "chat_history": [],
+
         "uploaded_files": [],
+
         "processed": False,
+
+        "page": "💬 Research Assistant"
+
     }
 
     for key, value in defaults.items():
@@ -40,111 +55,189 @@ def home_page():
 
     initialize_session()
 
-    st.title("📚 ResearchMate")
-    st.markdown("### Multi-Paper Research Assistant")
+    # ================= Hero ================= #
+
+    st.markdown(
+        """
+    <div style="text-align:center; padding:30px 0 15px 0;">
+
+    <h1 style="font-size:64px; margin-bottom:10px;">
+    📚 ResearchMate
+    </h1>
+
+    <h3 style="color:#d1d5db; font-weight:500; margin-top:0;">
+    AI-powered Multi-Paper Research Assistant
+    </h3>
+
+    <p style="color:#9ca3af; font-size:16px; margin-top:8px;">
+    Powered by
+    <b>Gemini 2.5 Flash</b>
+    •
+    <b>ChromaDB</b>
+    •
+    <b>Sentence Transformers</b>
+    </p>
+
+    </div>
+    """,
+        unsafe_allow_html=True
+    )
 
     # ================= Sidebar ================= #
 
     sidebar()
 
-    # ================= Tabs ================= #
-
-    tab1, tab2, tab3 = st.tabs(
-        [
-            "💬 Ask ResearchMate",
-            "📊 Compare Papers",
-            "🔍 Research Gaps"
-        ]
+    page = st.session_state.get(
+        "page",
+        "💬 Research Assistant"
     )
 
-    # ================= Tab 1: Ask ResearchMate ================= #
+    # ======================================================
+    # PAGE : RESEARCH ASSISTANT
+    # ======================================================
 
-    with tab1:
+    if page == "💬 Research Assistant":
 
-        st.divider()
+        # ---------- Welcome ---------- #
 
-        # ---------------- Paper Selector ---------------- #
+        if not st.session_state.processed:
 
-        uploaded_files = st.session_state.get("uploaded_files", [])
+            st.info(
+                """
+## 👋 Welcome to ResearchMate
 
-        paper_options = ["All Papers"] + [
-            file.name for file in uploaded_files
-        ]
+Upload one or more research papers from the sidebar.
 
-        selected_paper = st.selectbox(
-            "📄 Search In",
-            paper_options,
-            key="paper_selector"
-        )
+### 🚀 Features
 
-        question = render_chat()
+- 💬 Ask questions across papers
 
-        if question:
+- 📊 Compare research papers
 
-            if not question.strip():
+- 🔍 Discover research gaps
 
-                st.warning("Please enter a question.")
+- 📚 AI-powered retrieval
+
+---
+
+### ⬅ Start by uploading PDF research papers.
+"""
+            )
+
+            st.stop()
+
+       # ---------- Quick Start ---------- #
+
+        if len(st.session_state.chat_history) == 0:
+
+            st.markdown("## 👋 How can I help today?")
+
+            st.caption(
+                "Here are some example questions you can ask ResearchMate."
+            )
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+
+                with st.container(border=True):
+                    st.markdown("### 📄 Summarize Papers")
+                    st.caption(
+                        "Summarize all uploaded research papers."
+                    )
+
+                with st.container(border=True):
+                    st.markdown("### 📊 Compare Methodologies")
+                    st.caption(
+                        "Compare the methodologies used in the uploaded papers."
+                    )
+
+            with col2:
+
+                with st.container(border=True):
+                    st.markdown("### 🔍 Find Research Gaps")
+                    st.caption(
+                        "Identify future research opportunities."
+                    )
+
+                with st.container(border=True):
+                    st.markdown("### 🧠 Best Performing Paper")
+                    st.caption(
+                        "Determine which paper reports the strongest results."
+                    )
+
+            st.divider()
+    # --------------------------------------------------
+    # Chat Input
+    # --------------------------------------------------
+
+    question = render_chat()
+
+    # Use quick prompt if one was selected
+
+
+    # --------------------------------------------------
+    # Generate Answer
+    # --------------------------------------------------
+
+    if question:
+
+        with st.spinner("🧠 ResearchMate is analyzing your papers..."):
+
+            retriever = Retriever()
+
+            results = retriever.retrieve(question)
+            
+
+            st.session_state.results = results
+
+            if not results["found"]:
+
+                answer = {
+
+                    "answer": "❌ I couldn't find relevant information in the uploaded research papers.",
+
+                    "sources": []
+
+                }
 
             else:
 
-                with st.spinner("🧠 ResearchMate is analyzing your papers..."):
+                documents = results["documents"][0]
 
-                    retriever = Retriever()
+                metadatas = results["metadatas"][0]
 
-                    if selected_paper == "All Papers":
+                qa = QAEngine()
 
-                        results = retriever.retrieve(question)
+                answer = qa.answer_question(
+                question,
+                results["documents"][0],
+                results["metadatas"][0]
+            )
 
-                    else:
+            st.session_state.chat_history.append(
 
-                        results = retriever.retrieve(
-                            question,
-                            paper_name=selected_paper
-                        )
+                {
 
-                    st.session_state.results = results
+                    "question": question,
 
-                    # No relevant chunks found
-                    if not results["found"]:
+                    "answer": answer["answer"],
 
-                        answer = {
+                    "sources": answer["sources"]
 
-                            "answer": "❌ I couldn't find relevant information in the uploaded research papers.",
+                }
 
-                            "sources": []
+            )
 
-                        }
+            st.session_state.answer = answer
 
-                    else:
+    # --------------------------------------------------
+    # Conversation
+    # --------------------------------------------------
 
-                        documents = results["documents"][0]
+    if st.session_state.chat_history:
 
-                        metadatas = results["metadatas"][0]
-
-                        qa = QAEngine()
-
-                        answer = qa.answer_question(
-
-                            question,
-
-                            documents,
-
-                            metadatas
-
-                        )
-
-                st.toast("✅ Answer Generated")
-                st.session_state.last_question = question
-                st.session_state.answer = answer
-                st.session_state.chat_history.append(
-                    {
-                        "question": question,
-                        "answer": answer["answer"],
-                        "sources": answer["sources"]
-                    }
-                )
-
-        # ---------- AI Answer ---------- #
+        st.markdown("## 💬 Conversation")
 
         for chat in st.session_state.chat_history:
 
@@ -156,79 +249,85 @@ def home_page():
 
                 st.write(chat["answer"])
 
-                st.markdown("#### 📚 Sources")
-
                 if chat["sources"]:
 
-                    st.markdown("#### 📚 Sources")
+                    st.caption("Sources")
 
-                    for paper in chat["sources"]:
+                    for source in chat["sources"]:
 
-                        st.caption(f"📄 {paper}")
+                        st.markdown(f"- 📄 **{source}**")
 
-                    st.markdown(f"- 📄 **{paper}**")
+    # --------------------------------------------------
+    # Retrieved Chunks
+    # --------------------------------------------------
 
-        # ---------- Retrieved Chunks ---------- #
+    results = st.session_state.get("results")
 
-        results = st.session_state.get("results", None)
+    if results and results["found"]:
 
-        if results is not None:
+        documents = results["documents"][0]
 
-            documents = results.get("documents", [[]])[0]
-            metadatas = results.get("metadatas", [[]])[0]
+        metadatas = results["metadatas"][0]
 
-            st.divider()
-
-            with st.container(border=True):
-
-                st.markdown("### 📄 Search Results")
-
-                st.write(
-                    f"Found **{len(documents)}** relevant papers."
-                )
-
-
-            st.subheader("📄 Retrieved Chunks")
+        with st.expander("📚 View Retrieved Chunks"):
 
             for document, metadata in zip(documents, metadatas):
 
-                paper_name = metadata.get("paper", "Unknown Paper")
-
-                st.markdown(f"### 📄 {paper_name}")
+                st.markdown(f"### 📄 {metadata['paper']}")
 
                 st.caption(
-                    f"Chunk {metadata.get('chunk_id', '-')}"
+
+                    f"Chunk {metadata['chunk_id']}"
+
                 )
 
-                preview = document[:250]
-
-                if len(document) > 250:
-                    st.write(preview + "...")
-                else:
-                    st.write(document)
-
-                with st.expander("📖 Read Full Chunk"):
-                    st.write(document)
+                st.write(document)
 
                 st.divider()
 
-    # ================= Tab 2: Compare Papers ================= #
+    # ======================================================
+    # PAGE : PAPER COMPARISON
+    # ======================================================
 
-    with tab2:
+    elif page == "📊 Compare Papers":
 
-        st.subheader("📊 Compare Research Papers")
+        st.markdown("## 📊 Paper Comparison")
 
-        if st.button("Compare Papers"):
+        st.caption(
+            "Compare all uploaded research papers side-by-side."
+        )
 
-            engine = ComparisonEngine()
+        if st.button(
+            "📊 Generate Comparison",
+            use_container_width=True
+        ):
 
-            st.session_state.comparison = engine.compare_papers()
+            with st.spinner("Generating comparison..."):
+
+                engine = ComparisonEngine()
+
+                st.session_state.comparison = (
+                    engine.compare_papers()
+                )
 
         comparison = st.session_state.get("comparison")
 
-        if comparison is not None:
+        if comparison is None:
 
-            st.table(comparison)
+            st.info(
+                """
+No comparison has been generated yet.
+
+Click **Generate Comparison** to compare your uploaded papers.
+"""
+            )
+
+        else:
+
+            st.dataframe(
+                comparison,
+                use_container_width=True
+            )
 
             df = pd.DataFrame(comparison)
 
@@ -246,42 +345,87 @@ def home_page():
 
             )
 
-    # ================= Tab 3: Research Gaps ================= #
+    # ======================================================
+    # PAGE : RESEARCH GAPS
+    # ======================================================
 
-    with tab3:
+    elif page == "🔍 Research Gaps":
 
-        st.subheader("🔍 Research Gap Analysis")
+        st.markdown("## 🔍 Research Gap Analysis")
 
-        if st.button("Analyze Research Collection"):
+        st.caption(
+            "Discover unexplored opportunities and future research directions."
+        )
 
-            finder = GapFinder()
+        if st.button(
 
-            st.session_state.gap_report = finder.analyze()
+            "🔍 Analyze Research Collection",
+
+            use_container_width=True
+
+        ):
+
+            with st.spinner("Analyzing research collection..."):
+
+                finder = GapFinder()
+
+                st.session_state.gap_report = (
+
+                    finder.analyze()
+
+                )
 
         report = st.session_state.get("gap_report")
 
-        if report is not None:
+        if report is None:
+
+            st.info(
+                """
+No research gap report available.
+
+Click **Analyze Research Collection**
+to generate AI-powered insights.
+"""
+            )
+
+        else:
 
             with st.container(border=True):
 
-                st.markdown("### 🔍 Research Gap Analysis")
+                st.success(report["status"])
 
-                st.write(report["status"])
+                col1, col2 = st.columns(2)
 
-            col1, col2 = st.columns(2)
+                with col1:
 
-            with col1:
+                    st.metric(
 
-                st.metric(
-                    "Research Papers",
-                    report["papers"]
-                )
+                        "Research Papers",
 
-            with col2:
+                        report["papers"]
 
-                st.metric(
-                    "Total Chunks",
-                    report["chunks"]
-                )
+                    )
 
-            st.info(report["message"])
+                with col2:
+
+                    st.metric(
+
+                        "Total Chunks",
+
+                        report["chunks"]
+
+                    )
+
+                st.divider()
+
+                st.write(report["message"])
+
+    # ======================================================
+    # Footer
+    # ======================================================
+
+    st.divider()
+
+    st.caption(
+        "📚 ResearchMate v3 • Powered by Gemini 2.5 Flash • ChromaDB • Sentence Transformers"
+    )
