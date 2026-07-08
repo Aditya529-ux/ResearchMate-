@@ -1,6 +1,7 @@
 import streamlit as st
-from core.vector_store import VectorStore
+
 from core.document_service import DocumentService
+from core.vector_store import VectorStore
 
 
 def sidebar():
@@ -9,98 +10,108 @@ def sidebar():
 
         st.header("📂 Documents")
 
+        # ---------------- Upload ---------------- #
+
         uploaded_files = st.file_uploader(
             "Upload PDF files",
             type=["pdf"],
             accept_multiple_files=True
         )
-        st.session_state.uploaded_files = uploaded_files
 
-        process = st.button("Process Documents")
+        if uploaded_files:
+            st.session_state.uploaded_files = uploaded_files
 
-        if process:
+        # ---------------- Process ---------------- #
+
+        if st.button("Process Documents"):
 
             if not uploaded_files:
+
                 st.warning("Please upload at least one PDF.")
+
             else:
 
                 with st.spinner("Processing PDFs..."):
 
                     service = DocumentService()
 
+                    summary = service.process_documents(
+                        uploaded_files
+                    )
 
-
-                    summary = service.process_documents(uploaded_files)
-                    st.session_state.summary = summary
-
+                # Save everything in Session State
+                st.session_state.summary = summary
                 st.session_state.processed = True
 
+                st.success("✅ Documents processed successfully!")
 
-                st.success(
-                            f"""
-                        Processed Successfully!
-
-                        📄 Papers : {summary['papers']}
-
-                        🧩 Chunks : {summary['chunks']}
-                        """
-                        )
-
-                st.balloons()
+        # ---------------- Knowledge Base ---------------- #
 
         st.divider()
 
         st.subheader("📚 Knowledge Base")
 
-        if "summary" in st.session_state:
+        summary = st.session_state.get("summary")
 
-            summary = st.session_state.summary
+        if summary:
 
             st.success("🟢 Ready")
 
-            st.metric(
-                "Indexed Papers",
-                summary["papers"]
-            )
+            col1, col2 = st.columns(2)
 
-            st.metric(
-                "Stored Chunks",
-                summary["chunks"]
-            )
+            with col1:
+                st.metric(
+                    "Papers",
+                    summary.get("papers", 0)
+                )
+
+            with col2:
+                st.metric(
+                    "Chunks",
+                    summary.get("chunks", 0)
+                )
 
         else:
 
-            st.warning("No documents processed.")
+            st.info("No documents processed yet.")
 
+        # ---------------- Uploaded Papers ---------------- #
 
         st.divider()
 
-        st.subheader("Uploaded Papers")
+        st.subheader("📄 Uploaded Papers")
 
-        if uploaded_files:
+        files = st.session_state.get("uploaded_files", [])
 
-            for file in uploaded_files:
+        if files:
 
-                st.success(f"📄 {file.name}")
+            for file in files:
+
+                st.write(f"✅ {file.name}")
 
         else:
 
-            st.info("No uploaded papers.")
+            st.caption("No papers uploaded.")
 
+        # ---------------- Reset ---------------- #
+
+        st.divider()
 
         if st.button("🗑 Reset Knowledge Base"):
 
-            self_clear = VectorStore()
+            vector_store = VectorStore()
 
-            self_clear.clear_database()
+            vector_store.clear_database()
 
-            st.session_state.pop(
-                "summary",
-                None
-            )
+            # Clear Session State
+            st.session_state.summary = None
+            st.session_state.results = None
+            st.session_state.comparison = None
+            st.session_state.gap_report = None
+            st.session_state.chat_history = []
+            st.session_state.processed = False
+            st.session_state.uploaded_files = []
 
-            st.success(
-                "Knowledge Base Cleared!"
-            )
+            st.success("Knowledge Base Cleared!")
 
             st.rerun()

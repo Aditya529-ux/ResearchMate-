@@ -1,7 +1,6 @@
 from core.embedding_manager import EmbeddingManager
 from core.vector_store import VectorStore
 
-
 class Retriever:
 
     def __init__(self):
@@ -11,11 +10,14 @@ class Retriever:
     def retrieve(self, question, top_k=10):
 
         query_embedding = self.embedding_manager.embed_text(question)
+        print("EMBEDDING:", query_embedding[:5] if query_embedding else query_embedding)
 
         results = self.vector_store.search(
             query_embedding=query_embedding,
             top_k=top_k
         )
+
+        print("SEARCH RESULT:", results)
 
         unique_documents = []
         unique_metadata = []
@@ -44,3 +46,5 @@ class Retriever:
             "metadatas": [unique_metadata]
 
         }
+
+
