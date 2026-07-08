@@ -228,7 +228,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 **Aditya**
 Third-year Computer Science & Robotics student | AI/ML & Software Engineering
 
-- GitHub: [@your-username](https://github.com/your-username)
+- GitHub: [Aditya529-ux](https://github.com/Aditya529-ux)
 
 ---
 
