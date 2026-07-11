@@ -1,7 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
 venv/
 .env
-vectorstore/
-data/uploads/
-data/processed/
-__pycache__/
-*.pyc
+
+# Streamlit
+.streamlit/
+
+# Chroma Vector Store
+vectorstore/*
+!vectorstore/.gitkeep
+
+# Uploaded PDFs
+data/uploads/*
+!data/uploads/.gitkeep
+
+# Processed Data
+data/processed/*
+!data/processed/.gitkeep
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
